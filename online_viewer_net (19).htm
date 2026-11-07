@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock, Loading & Unloading Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .tab-btn.active { background-color: #1e40af; color: #ffffff; border-color: #1e40af; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.6; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .pulse-alert { animation: pulse-ring 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Navigation Bar -->
+    <header class="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-500/20 p-2.5 rounded-xl border border-blue-400/30">
+                    <i class="fa-solid fa-boxes-stacked text-2xl text-blue-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Stock, Loading & Unloading Manager</h1>
+                    <p class="text-xs text-blue-200">තොග, ලෝඩින් සහ අන්ලෝඩින් කළමනාකරණය</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                    <button onclick="toggleAlertDrawer()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center gap-2 border border-slate-700 shadow-md">
+                        <i class="fa-solid fa-bell text-amber-400"></i>
+                        <span>Alerts</span>
+                        <span id="alertCountBadge" class="hidden px-2 py-0.5 bg-rose-600 text-white text-[11px] font-bold rounded-full pulse-alert">0</span>
+                    </button>
+                </div>
+
+                <button onclick="openNewItemModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>+ Add New Item</span>
+                </button>
+                <button onclick="exportToCSV()" class="px-3 py-2 bg-slate-700/80 hover:bg-slate-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 border border-slate-600">
+                    <i class="fa-solid fa-file-csv text-emerald-400"></i>
+                    <span>CSV</span>
+                </button>
+                <button onclick="openResetModal()" class="px-3 py-2 bg-rose-600/80 hover:bg-rose-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 border border-rose-500">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Alert Drawer -->
+    <div id="alertDrawer" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-md">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                    <span>Low Stock Alert Summary</span>
+                </h3>
+                <button onclick="toggleAlertDrawer()" class="text-amber-700 hover:text-amber-900 text-xs font-bold">Close ✕</button>
+            </div>
+            <div id="alertListContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow">
+        
+        <!-- Summary Dashboard Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-50 text-brand-600 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Items</p>
+                    <h3 id="statTotalItems" class="text-lg sm:text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
+                    <i class="fa-solid fa-boxes-packing"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Available Stock</p>
+                    <h3 id="statAvailableStock" class="text-lg sm:text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Currently Loaded</p>
+                    <h3 id="statTotalLoaded" class="text-lg sm:text-2xl font-bold text-indigo-600">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Grand Value</p>
+                    <h3 id="statGrandTotal" class="text-base sm:text-xl font-bold text-emerald-600">Rs. 0.00</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation Buttons -->
+        <div class="flex flex-wrap gap-2 border-b border-slate-200 mb-6 pb-2">
+            <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 border border-transparent bg-slate-200 text-slate-700 hover:bg-slate-300">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Dashboard (Main Stock)</span>
+            </button>
+            <button onclick="switchTab('addStock')" id="tab-btn-addStock" class="tab-btn px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 border border-transparent bg-slate-200 text-slate-700 hover:bg-slate-300">
+                <i class="fa-solid fa-circle-plus text-emerald-600"></i>
+                <span>Add Stock Quantity</span>
+            </button>
+            <button onclick="switchTab('loading')" id="tab-btn-loading" class="tab-btn px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 border border-transparent bg-slate-200 text-slate-700 hover:bg-slate-300">
+                <i class="fa-solid fa-truck-loading text-amber-600"></i>
+                <span>Loading Page</span>
+            </button>
+            <!-- NEW UNLOADING TAB -->
+            <button onclick="switchTab('unloading')" id="tab-btn-unloading" class="tab-btn px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 border border-transparent bg-slate-200 text-slate-700 hover:bg-slate-300">
+                <i class="fa-solid fa-truck-arrow-right text-indigo-600 rotate-180"></i>
+                <span>Unloading Page</span>
+            </button>
+            <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 border border-transparent bg-slate-200 text-slate-700 hover:bg-slate-300">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Activity History</span>
+            </button>
+        </div>
+
+        <!-- VIEW 1: DASHBOARD TAB -->
+        <div id="view-dashboard" class="tab-view block space-y-4">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50/50">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Main Stock Inventory (ප්‍රධාන තොග සටහන)</h2>
+                        <p class="text-xs text-slate-500">Set custom low stock thresholds and monitor alerts automatically.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <button onclick="openNewItemModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 shrink-0">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>New Item</span>
+                        </button>
+                        <div class="relative w-full md:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="searchInput" onkeyup="filterStockTable()" placeholder="Search item..." class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase font-semibold text-xs tracking-wider border-b border-slate-200">
+                                <th class="p-3 sm:p-4">Item Name</th>
+                                <th class="p-3 sm:p-4 text-center">Unit Rate (Rs.)</th>
+                                <th class="p-3 sm:p-4 text-center">Min Threshold</th>
+                                <th class="p-3 sm:p-4 text-center">Total In</th>
+                                <th class="p-3 sm:p-4 text-center">Loaded Out</th>
+                                <th class="p-3 sm:p-4 text-center">Available</th>
+                                <th class="p-3 sm:p-4 text-right">Total Stock Value (Rs.)</th>
+                                <th class="p-3 sm:p-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody" class="divide-y divide-slate-100 font-medium">
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-slate-900 text-white font-bold text-sm sm:text-base">
+                                <td colspan="6" class="p-4 text-right">GRAND TOTAL VALUE (මුළු වටිනාකම):</td>
+                                <td id="dashboardGrandTotal" class="p-4 text-right text-emerald-400">Rs. 0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: ADD STOCK QTY TAB -->
+        <div id="view-addStock" class="tab-view hidden max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="p-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus"></i>
+                        <span>Add Stock Quantity (තොග එකතු කිරීම)</span>
+                    </h2>
+                    <p class="text-xs text-emerald-100 mt-1">Select any item and increase stock quantity.</p>
+                </div>
+
+                <form onsubmit="submitAddStock(event)" class="p-6 space-y-5">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Select Item (අයිතමය තෝරන්න):</label>
+                        <select id="addStockItemSelect" onchange="updateAddStockPreview()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm font-medium">
+                        </select>
+                    </div>
+
+                    <div id="addStockCurrentInfo" class="bg-emerald-50 p-3 rounded-lg border border-emerald-200 flex justify-between items-center text-xs sm:text-sm">
+                        <span class="text-slate-600 font-medium">Current Available Stock:</span>
+                        <span id="addStockCurrentVal" class="font-bold text-emerald-700 text-base">0 Units</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Quantity to Add (එකතු කරන ප්‍රමාණය):</label>
+                        <input type="number" id="addStockQtyInput" min="1" required placeholder="e.g. 50" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm font-semibold">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Reference / Note (සටහන - Optional):</label>
+                        <input type="text" id="addStockNote" placeholder="e.g. Batch #23 addition" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>Confirm Add Stock</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 3: LOADING PAGE TAB -->
+        <div id="view-loading" class="tab-view hidden max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="p-5 bg-gradient-to-r from-amber-600 to-orange-700 text-white">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-truck-loading"></i>
+                        <span>Loading Page - Stock Issue (බඩු පිටතට යැවීම)</span>
+                    </h2>
+                    <p class="text-xs text-amber-100 mt-1">Record items loaded out. Real-time warning triggered if threshold is breached.</p>
+                </div>
+
+                <form onsubmit="submitLoadingOut(event)" class="p-6 space-y-5">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Select Item (අයිතමය තෝරන්න):</label>
+                        <select id="loadStockItemSelect" onchange="updateLoadingPreview()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-medium">
+                        </select>
+                    </div>
+
+                    <div id="loadingCurrentInfo" class="bg-amber-50 p-3 rounded-lg border border-amber-200 flex justify-between items-center text-xs sm:text-sm">
+                        <span class="text-slate-600 font-medium">Available Stock to Load:</span>
+                        <span id="loadingCurrentVal" class="font-bold text-amber-800 text-base">0 Units</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Loaded Quantity (ලෝඩින් කළ ප්‍රමාණය):</label>
+                        <input type="number" id="loadStockQtyInput" min="1" oninput="validateLoadQty()" required placeholder="e.g. 20" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-semibold">
+                        <p id="loadQtyErrorMsg" class="text-xs text-rose-600 font-semibold mt-1 hidden">
+                            <i class="fa-solid fa-circle-exclamation"></i> Quantity exceeds available stock!
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Vehicle / Driver Details (වාහනයේ විස්තර):</label>
+                        <input type="text" id="loadStockNote" placeholder="e.g. Lorry WP-5432" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm">
+                    </div>
+
+                    <button id="btnSubmitLoading" type="submit" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span>Deduct & Load Out Stock</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 4: UNLOADING PAGE TAB (NEW) -->
+        <div id="view-unloading" class="tab-view hidden max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="p-5 bg-gradient-to-r from-indigo-700 to-blue-800 text-white">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-truck-arrow-right rotate-180"></i>
+                        <span>Unloading Page - Return to Stock (බඩු නැවත තොගයට එකතු කිරීම)</span>
+                    </h2>
+                    <p class="text-xs text-indigo-100 mt-1">Record items unloaded back into main inventory. Loaded-out count reduces and available stock restores.</p>
+                </div>
+
+                <form onsubmit="submitUnloading(event)" class="p-6 space-y-5">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Select Item (අයිතමය තෝරන්න):</label>
+                        <select id="unloadStockItemSelect" onchange="updateUnloadingPreview()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-medium">
+                        </select>
+                    </div>
+
+                    <div id="unloadingCurrentInfo" class="bg-indigo-50 p-3 rounded-lg border border-indigo-200 flex justify-between items-center text-xs sm:text-sm">
+                        <span class="text-slate-600 font-medium">Currently Loaded Out:</span>
+                        <span id="unloadingCurrentVal" class="font-bold text-indigo-800 text-base">0 Units</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Unloaded Quantity (ආපසු තොගයට ආ ප්‍රමාණය):</label>
+                        <input type="number" id="unloadStockQtyInput" min="1" oninput="validateUnloadQty()" required placeholder="e.g. 10" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-semibold">
+                        <p id="unloadQtyErrorMsg" class="text-xs text-rose-600 font-semibold mt-1 hidden">
+                            <i class="fa-solid fa-circle-exclamation"></i> Unload quantity cannot exceed loaded-out units!
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Vehicle / Reason Details (විස්තර):</label>
+                        <input type="text" id="unloadStockNote" placeholder="e.g. Lorry WP-5432 return / Unsold stock" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    </div>
+
+                    <button id="btnSubmitUnloading" type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>Restore & Add Back to Stock</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW 5: ACTIVITY HISTORY TAB -->
+        <div id="view-history" class="tab-view hidden space-y-4">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Transaction History (සිදුවීම් සටහන්)</h2>
+                        <p class="text-xs text-slate-500">Log of all additions, dispatches, unloading returns, and new item creations.</p>
+                    </div>
+                    <button onclick="clearHistoryLog()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-md font-semibold transition-all">
+                        Clear Log
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 uppercase font-semibold text-xs tracking-wider border-b border-slate-200">
+                                <th class="p-3">Date & Time</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Item</th>
+                                <th class="p-3 text-center">Qty</th>
+                                <th class="p-3">Reference / Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 font-medium">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-4 text-center text-xs border-t border-slate-800">
+        <p>Stock, Loading & Unloading Management System &bull; Dynamic Item Inventory App</p>
+    </footer>
+
+    <!-- MODAL 1: ADD NEW ITEM MODAL -->
+    <div id="newItemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-box-open text-emerald-600"></i>
+                    <span>Add New Item (අලුත් අයිතමයක්)</span>
+                </h3>
+                <button onclick="closeNewItemModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="submitNewItem(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Item Name (අයිතමයේ නම):</label>
+                    <input type="text" id="newItemNameInput" required placeholder="e.g. Cashew / Chilli Powder" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm font-medium">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Unit Rate (Rs.):</label>
+                        <input type="number" id="newItemRateInput" min="0" step="any" placeholder="e.g. 250" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Min Threshold:</label>
+                        <input type="number" id="newItemThresholdInput" min="0" value="10" placeholder="Default 10" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Initial Stock Quantity (ආරම්භක තොගය):</label>
+                    <input type="number" id="newItemInitialStockInput" min="0" value="0" placeholder="e.g. 100" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm font-medium">
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeNewItemModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-all shadow-md">
+                        + Create Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="resetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl mb-4 mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 text-center mb-1">Reset All Stock Data?</h3>
+            <p class="text-xs text-slate-500 text-center mb-6">This will restore original default items and remove custom added items.</p>
+            <div class="flex gap-3">
+                <button onclick="closeResetModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all">
+                    Cancel
+                </button>
+                <button onclick="confirmResetData()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg transition-all shadow-md">
+                    Yes, Reset Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Google Apps Script Web App URL එක මෙහි ඇතුළත් කර ඇත
+        const API_URL = "https://script.google.com/macros/s/AKfycbyoMq3pCLyEqtbR4OrhNmqjkCEDJLTETP0EUjAX-mD-Pb-FZ6FSetrwVAogUVwJy_Dd/exec"; 
+
+        const DEFAULT_ITEMS = [
+            { id: 'item_1', name: 'Mix', rate: 0, stockIn: 99, loadedOut: 0, minThreshold: 15 },
+            { id: 'item_2', name: 'Baby', rate: 0, stockIn: 61, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_3', name: 'Garlic', rate: 0, stockIn: 75, loadedOut: 0, minThreshold: 20 },
+            { id: 'item_4', name: 'Kuni', rate: 0, stockIn: 70, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_5', name: 'Kuru', rate: 0, stockIn: 23, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_6', name: 'Riban', rate: 0, stockIn: 60, loadedOut: 0, minThreshold: 15 },
+            { id: 'item_7', name: 'Yellow G', rate: 0, stockIn: 0, loadedOut: 0, minThreshold: 5 },
+            { id: 'item_8', name: 'Penuts', rate: 0, stockIn: 40, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_9', name: 'Masala', rate: 0, stockIn: 0, loadedOut: 0, minThreshold: 5 },
+            { id: 'item_10', name: 'Tiffing', rate: 0, stockIn: 31, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_11', name: 'Dhall', rate: 0, stockIn: 0, loadedOut: 0, minThreshold: 10 },
+            { id: 'item_12', name: 'Tea', rate: 0, stockIn: 45, loadedOut: 0, minThreshold: 15 }
+        ];
+
+        let inventory = [];
+        let historyLogs = [];
+
+        function initInventoryState() {
+            showToast("Connecting to cloud database...", "info");
+            
+            fetch(API_URL + "?action=getData")
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.inventory && data.inventory.length > 0) {
+                        inventory = data.inventory;
+                        historyLogs = data.historyLogs || [];
+                    } else {
+                        inventory = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+                        historyLogs = [];
+                        saveState();
+                    }
+                    renderAllViews();
+                    showToast("Data loaded successfully!", "success");
+                })
+                .catch(err => {
+                    console.error("Error loading data from sheet:", err);
+                    loadFromLocalStorageFallback();
+                });
+        }
+
+        function saveState() {
+            const payload = {
+                inventory: inventory,
+                historyLogs: historyLogs
+            };
+
+            fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                console.log("Data synced with Google Sheet!");
+            }).catch(err => {
+                console.error("Failed to sync with cloud:", err);
+            });
+
+            try {
+                localStorage.setItem('app_stock_inventory_v5', JSON.stringify(inventory));
+                localStorage.setItem('app_stock_logs_v5', JSON.stringify(historyLogs));
+            } catch(e) {}
+        }
+
+        function loadFromLocalStorageFallback() {
+            const storedData = localStorage.getItem('app_stock_inventory_v5');
+            const storedLogs = localStorage.getItem('app_stock_logs_v5');
+            if (storedData) {
+                inventory = JSON.parse(storedData);
+                historyLogs = storedLogs ? JSON.parse(storedLogs) : [];
+            } else {
+                inventory = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+                historyLogs = [];
+            }
+            renderAllViews();
+            showToast("Loaded from offline backup.", "info");
+        }
+
+        function renderAllViews() {
+            renderDashboardTable();
+            renderStatsCards();
+            populateDropdowns();
+            renderHistoryLogs();
+            updateAlertNotificationDrawer();
+        }
+
+        function renderDashboardTable() {
+            const tbody = document.getElementById('stockTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            let grandTotal = 0;
+            const searchQuery = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+
+            inventory.forEach((item, index) => {
+                if (searchQuery && !item.name.toLowerCase().includes(searchQuery)) {
+                    return;
+                }
+
+                const available = Math.max(0, item.stockIn - item.loadedOut);
+                const rate = item.rate || 0;
+                const minThreshold = item.minThreshold !== undefined ? item.minThreshold : 10;
+                const totalValue = available * rate;
+                grandTotal += totalValue;
+
+                let statusBadge = '';
+                let rowBgClass = "hover:bg-slate-50/80 transition-colors";
+
+                if (available === 0) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-rose-100 text-rose-700 font-bold rounded-md border border-rose-200"><i class="fa-solid fa-circle-xmark"></i> Out of Stock</span>`;
+                    rowBgClass = "bg-rose-50/40 hover:bg-rose-50/70 transition-colors";
+                } else if (available <= minThreshold) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-amber-100 text-amber-800 font-bold rounded-md border border-amber-200"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock</span>`;
+                    rowBgClass = "bg-amber-50/40 hover:bg-amber-50/70 transition-colors";
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = rowBgClass;
+                tr.innerHTML = `
+                    <td class="p-3 sm:p-4 font-bold text-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span>${item.name}</span>
+                            ${statusBadge}
+                        </div>
+                    </td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <div class="relative inline-block w-24">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Rs.</span>
+                            <input type="number" min="0" step="any" value="${item.rate !== undefined && item.rate !== null && item.rate !== 0 ? item.rate : ''}" 
+                                   placeholder="0" 
+                                   onchange="handleRateChange(${index}, this.value)"
+                                   class="w-full pl-7 pr-1 py-1 text-center font-semibold bg-white border border-slate-300 rounded focus:ring-2 focus:ring-brand-500 focus:outline-none text-xs sm:text-sm">
+                        </div>
+                    </td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <input type="number" min="0" value="${minThreshold}" 
+                               onchange="handleThresholdChange(${index}, this.value)"
+                               title="Set minimum stock alert threshold"
+                               class="w-16 py-1 px-1.5 text-center font-semibold text-slate-700 bg-white border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs sm:text-sm">
+                    </td>
+                    <td class="p-3 sm:p-4 text-center text-slate-600 font-semibold">${item.stockIn}</td>
+                    <td class="p-3 sm:p-4 text-center text-amber-600 font-semibold">${item.loadedOut}</td>
+                    <td class="p-3 sm:p-4 text-center font-bold text-slate-800">
+                        <span class="${available > minThreshold ? 'text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md' : (available === 0 ? 'text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md' : 'text-amber-800 bg-amber-100 px-2.5 py-1 rounded-md')}">
+                            ${available}
+                        </span>
+                    </td>
+                    <td class="p-3 sm:p-4 text-right font-bold text-slate-800">
+                        Rs. ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td class="p-3 sm:p-4 text-center">
+                        <button onclick="deleteItem(${index})" title="Delete Item" class="p-1.5 text-slate-400 hover:text-rose-600 transition-colors">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('dashboardGrandTotal').innerText = `Rs. ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function renderStatsCards() {
+            let totalAvailable = 0;
+            let totalLoaded = 0;
+            let grandTotalVal = 0;
+
+            inventory.forEach(item => {
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                totalAvailable += avail;
+                totalLoaded += (item.loadedOut || 0);
+                grandTotalVal += (avail * (item.rate || 0));
+            });
+
+            document.getElementById('statTotalItems').innerText = inventory.length;
+            document.getElementById('statAvailableStock').innerText = totalAvailable.toLocaleString();
+            document.getElementById('statTotalLoaded').innerText = totalLoaded.toLocaleString();
+            document.getElementById('statGrandTotal').innerText = `Rs. ${grandTotalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function updateAlertNotificationDrawer() {
+            const drawerContainer = document.getElementById('alertListContainer');
+            const alertBadge = document.getElementById('alertCountBadge');
+            if (!drawerContainer || !alertBadge) return;
+
+            drawerContainer.innerHTML = '';
+            let alertCount = 0;
+
+            inventory.forEach(item => {
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                const thresh = item.minThreshold !== undefined ? item.minThreshold : 10;
+
+                if (avail <= thresh) {
+                    alertCount++;
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-2.5 rounded-lg border border-amber-300 shadow-sm flex items-center justify-between text-xs";
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid ${avail === 0 ? 'fa-circle-xmark text-rose-600' : 'fa-triangle-exclamation text-amber-600'}"></i>
+                            <span class="font-bold text-slate-800">${item.name}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-extrabold ${avail === 0 ? 'text-rose-600' : 'text-amber-700'}">${avail} units</span>
+                            <span class="text-slate-400 text-[10px] block">Min: ${thresh}</span>
+                        </div>
+                    `;
+                    drawerContainer.appendChild(card);
+                }
+            });
+
+            if (alertCount > 0) {
+                alertBadge.innerText = alertCount;
+                alertBadge.classList.remove('hidden');
+            } else {
+                alertBadge.classList.add('hidden');
+                drawerContainer.innerHTML = `<p class="text-xs text-slate-500 italic col-span-3">All items are currently above their low-stock thresholds.</p>`;
+            }
+        }
+
+        function toggleAlertDrawer() {
+            const drawer = document.getElementById('alertDrawer');
+            if (drawer) drawer.classList.toggle('hidden');
+        }
+
+        function handleThresholdChange(index, value) {
+            const threshold = parseInt(value) || 0;
+            inventory[index].minThreshold = threshold;
+            saveState();
+            renderAllViews();
+            showToast(`Threshold updated for ${inventory[index].name} to ${threshold} units.`, 'info');
+        }
+
+        function openNewItemModal() {
+            document.getElementById('newItemModal').classList.remove('hidden');
+            document.getElementById('newItemNameInput').focus();
+        }
+
+        function closeNewItemModal() {
+            document.getElementById('newItemModal').classList.add('hidden');
+            document.getElementById('newItemNameInput').value = '';
+            document.getElementById('newItemRateInput').value = '';
+            document.getElementById('newItemThresholdInput').value = '10';
+            document.getElementById('newItemInitialStockInput').value = '0';
+        }
+
+        function submitNewItem(e) {
+            e.preventDefault();
+            const name = document.getElementById('newItemNameInput').value.trim();
+            const rate = parseFloat(document.getElementById('newItemRateInput').value) || 0;
+            const threshold = parseInt(document.getElementById('newItemThresholdInput').value) || 10;
+            const initialStock = parseInt(document.getElementById('newItemInitialStockInput').value) || 0;
+
+            if (!name) {
+                showToast('Please enter an item name.', 'error');
+                return;
+            }
+
+            const exists = inventory.some(item => item.name.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                showToast('An item with this name already exists!', 'error');
+                return;
+            }
+
+            const newItem = {
+                id: 'item_' + Date.now(),
+                name: name,
+                rate: rate,
+                minThreshold: threshold,
+                stockIn: initialStock,
+                loadedOut: 0
+            };
+
+            inventory.push(newItem);
+
+            historyLogs.unshift({
+                date: new Date().toLocaleString(),
+                type: 'New Item Created',
+                item: name,
+                qty: initialStock,
+                details: `Rate: Rs. ${rate} | Min Threshold: ${threshold}`
+            });
+
+            saveState();
+            renderAllViews();
+            closeNewItemModal();
+            showToast(`Item "${name}" created successfully!`, 'success');
+        }
+
+        function handleRateChange(index, value) {
+            const rate = parseFloat(value) || 0;
+            inventory[index].rate = rate;
+            saveState();
+            renderStatsCards();
+            renderDashboardTable();
+        }
+
+        function deleteItem(index) {
+            const itemName = inventory[index].name;
+            if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
+                inventory.splice(index, 1);
+                historyLogs.unshift({
+                    date: new Date().toLocaleString(),
+                    type: 'Item Deleted',
+                    item: itemName,
+                    qty: 0,
+                    details: 'Removed from inventory'
+                });
+                saveState();
+                renderAllViews();
+                showToast(`Item "${itemName}" deleted.`, 'info');
+            }
+        }
+
+        function populateDropdowns() {
+            const addSelect = document.getElementById('addStockItemSelect');
+            const loadSelect = document.getElementById('loadStockItemSelect');
+            const unloadSelect = document.getElementById('unloadStockItemSelect');
+
+            if (!addSelect || !loadSelect || !unloadSelect) return;
+
+            const currentAddVal = addSelect.value;
+            const currentLoadVal = loadSelect.value;
+            const currentUnloadVal = unloadSelect.value;
+
+            addSelect.innerHTML = '';
+            loadSelect.innerHTML = '';
+            unloadSelect.innerHTML = '';
+
+            inventory.forEach((item, index) => {
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                const thresh = item.minThreshold !== undefined ? item.minThreshold : 10;
+                const statusTag = avail <= thresh ? ' [LOW STOCK]' : '';
+                
+                const opt1 = document.createElement('option');
+                opt1.value = index;
+                opt1.textContent = `${item.name} (Available: ${avail})${statusTag}`;
+                addSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = index;
+                opt2.textContent = `${item.name} (Available: ${avail})${statusTag}`;
+                loadSelect.appendChild(opt2);
+
+                const opt3 = document.createElement('option');
+                opt3.value = index;
+                opt3.textContent = `${item.name} (Currently Loaded: ${item.loadedOut})`;
+                unloadSelect.appendChild(opt3);
+            });
+
+            if (currentAddVal !== '' && currentAddVal < inventory.length) addSelect.value = currentAddVal;
+            if (currentLoadVal !== '' && currentLoadVal < inventory.length) loadSelect.value = currentLoadVal;
+            if (currentUnloadVal !== '' && currentUnloadVal < inventory.length) unloadSelect.value = currentUnloadVal;
+
+            updateAddStockPreview();
+            updateLoadingPreview();
+            updateUnloadingPreview();
+        }
+
+        function updateAddStockPreview() {
+            const select = document.getElementById('addStockItemSelect');
+            const valSpan = document.getElementById('addStockCurrentVal');
+            if (!select || !valSpan) return;
+
+            const index = select.value;
+            if (index !== '' && inventory[index]) {
+                const item = inventory[index];
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                valSpan.innerText = `${avail} Units (Total In: ${item.stockIn})`;
+            } else {
+                valSpan.innerText = '0 Units';
+            }
+        }
+
+        function submitAddStock(e) {
+            e.preventDefault();
+            const select = document.getElementById('addStockItemSelect');
+            const qtyInput = document.getElementById('addStockQtyInput');
+            const noteInput = document.getElementById('addStockNote');
+
+            const index = parseInt(select.value);
+            const qty = parseInt(qtyInput.value) || 0;
+            const note = noteInput.value.trim() || 'Stock added';
+
+            if (isNaN(index) || !inventory[index]) {
+                showToast('Please select a valid item.', 'error');
+                return;
+            }
+
+            if (qty <= 0) {
+                showToast('Quantity must be greater than zero.', 'error');
+                return;
+            }
+
+            inventory[index].stockIn += qty;
+
+            historyLogs.unshift({
+                date: new Date().toLocaleString(),
+                type: 'Add Stock',
+                item: inventory[index].name,
+                qty: `+${qty}`,
+                details: note
+            });
+
+            saveState();
+            renderAllViews();
+
+            qtyInput.value = '';
+            noteInput.value = '';
+            showToast(`Successfully added ${qty} units to ${inventory[index].name}!`, 'success');
+        }
+
+        function updateLoadingPreview() {
+            const select = document.getElementById('loadStockItemSelect');
+            const valSpan = document.getElementById('loadingCurrentVal');
+            if (!select || !valSpan) return;
+
+            const index = select.value;
+            if (index !== '' && inventory[index]) {
+                const item = inventory[index];
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                valSpan.innerText = `${avail} Units`;
+                validateLoadQty();
+            } else {
+                valSpan.innerText = '0 Units';
+            }
+        }
+
+        function validateLoadQty() {
+            const select = document.getElementById('loadStockItemSelect');
+            const qtyInput = document.getElementById('loadStockQtyInput');
+            const errorMsg = document.getElementById('loadQtyErrorMsg');
+            const submitBtn = document.getElementById('btnSubmitLoading');
+
+            if (!select || !qtyInput || !errorMsg || !submitBtn) return true;
+
+            const index = parseInt(select.value);
+            const qty = parseInt(qtyInput.value) || 0;
+
+            if (isNaN(index) || !inventory[index]) return true;
+
+            const avail = Math.max(0, inventory[index].stockIn - inventory[index].loadedOut);
+
+            if (qty > avail) {
+                errorMsg.classList.remove('hidden');
+                qtyInput.classList.add('border-rose-500', 'ring-rose-500');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return false;
+            } else {
+                errorMsg.classList.add('hidden');
+                qtyInput.classList.remove('border-rose-500', 'ring-rose-500');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                return true;
+            }
+        }
+
+        function submitLoadingOut(e) {
+            e.preventDefault();
+            if (!validateLoadQty()) return;
+
+            const select = document.getElementById('loadStockItemSelect');
+            const qtyInput = document.getElementById('loadStockQtyInput');
+            const noteInput = document.getElementById('loadStockNote');
+
+            const index = parseInt(select.value);
+            const qty = parseInt(qtyInput.value) || 0;
+            const vehicle = noteInput.value.trim() || 'General Dispatch';
+
+            if (isNaN(index) || !inventory[index]) {
+                showToast('Please select a valid item.', 'error');
+                return;
+            }
+
+            const item = inventory[index];
+            item.loadedOut += qty;
+
+            const remaining = Math.max(0, item.stockIn - item.loadedOut);
+            const thresh = item.minThreshold !== undefined ? item.minThreshold : 10;
+
+            historyLogs.unshift({
+                date: new Date().toLocaleString(),
+                type: 'Loading Out',
+                item: item.name,
+                qty: `-${qty}`,
+                details: vehicle
+            });
+
+            saveState();
+            renderAllViews();
+
+            qtyInput.value = '';
+            noteInput.value = '';
+
+            if (remaining <= thresh) {
+                showToast(`Loaded ${qty} units. WARNING: ${item.name} is now low in stock (${remaining} remaining)!`, 'error');
+            } else {
+                showToast(`Successfully loaded out ${qty} units of ${item.name}!`, 'success');
+            }
+        }
+
+        // UNLOADING LOGIC (NEW)
+        function updateUnloadingPreview() {
+            const select = document.getElementById('unloadStockItemSelect');
+            const valSpan = document.getElementById('unloadingCurrentVal');
+            if (!select || !valSpan) return;
+
+            const index = select.value;
+            if (index !== '' && inventory[index]) {
+                const item = inventory[index];
+                valSpan.innerText = `${item.loadedOut || 0} Units`;
+                validateUnloadQty();
+            } else {
+                valSpan.innerText = '0 Units';
+            }
+        }
+
+        function validateUnloadQty() {
+            const select = document.getElementById('unloadStockItemSelect');
+            const qtyInput = document.getElementById('unloadStockQtyInput');
+            const errorMsg = document.getElementById('unloadQtyErrorMsg');
+            const submitBtn = document.getElementById('btnSubmitUnloading');
+
+            if (!select || !qtyInput || !errorMsg || !submitBtn) return true;
+
+            const index = parseInt(select.value);
+            const qty = parseInt(qtyInput.value) || 0;
+
+            if (isNaN(index) || !inventory[index]) return true;
+
+            const loadedOut = inventory[index].loadedOut || 0;
+
+            if (qty > loadedOut) {
+                errorMsg.classList.remove('hidden');
+                qtyInput.classList.add('border-rose-500', 'ring-rose-500');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return false;
+            } else {
+                errorMsg.classList.add('hidden');
+                qtyInput.classList.remove('border-rose-500', 'ring-rose-500');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                return true;
+            }
+        }
+
+        function submitUnloading(e) {
+            e.preventDefault();
+            if (!validateUnloadQty()) return;
+
+            const select = document.getElementById('unloadStockItemSelect');
+            const qtyInput = document.getElementById('unloadStockQtyInput');
+            const noteInput = document.getElementById('unloadStockNote');
+
+            const index = parseInt(select.value);
+            const qty = parseInt(qtyInput.value) || 0;
+            const details = noteInput.value.trim() || 'Returned Unloaded Stock';
+
+            if (isNaN(index) || !inventory[index]) {
+                showToast('Please select a valid item.', 'error');
+                return;
+            }
+
+            const item = inventory[index];
+            item.loadedOut = Math.max(0, item.loadedOut - qty);
+
+            historyLogs.unshift({
+                date: new Date().toLocaleString(),
+                type: 'Unloaded Return',
+                item: item.name,
+                qty: `+${qty}`,
+                details: details
+            });
+
+            saveState();
+            renderAllViews();
+
+            qtyInput.value = '';
+            noteInput.value = '';
+
+            showToast(`Successfully unloaded ${qty} units of ${item.name} back into stock!`, 'info');
+        }
+
+        function renderHistoryLogs() {
+            const tbody = document.getElementById('historyTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (historyLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No transaction history recorded yet.</td></tr>`;
+                return;
+            }
+
+            historyLogs.forEach(log => {
+                let badgeClass = 'bg-blue-100 text-blue-700';
+                if (log.type === 'Add Stock') badgeClass = 'bg-emerald-100 text-emerald-700';
+                if (log.type === 'Loading Out') badgeClass = 'bg-amber-100 text-amber-800';
+                if (log.type === 'Unloaded Return') badgeClass = 'bg-indigo-100 text-indigo-800';
+                if (log.type === 'Item Deleted') badgeClass = 'bg-rose-100 text-rose-700';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-600 text-xs">${log.date}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${log.type}</span></td>
+                    <td class="p-3 font-bold text-slate-800">${log.item}</td>
+                    <td class="p-3 text-center font-semibold text-slate-700">${log.qty}</td>
+                    <td class="p-3 text-slate-600 text-xs">${log.details || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearHistoryLog() {
+            if (confirm('Are you sure you want to clear all history logs?')) {
+                historyLogs = [];
+                saveState();
+                renderHistoryLogs();
+                showToast('History log cleared.', 'info');
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active', 'bg-blue-900', 'text-white'));
+
+            const targetView = document.getElementById(`view-${tabName}`);
+            const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+
+            if (targetView) targetView.classList.remove('hidden');
+            if (targetBtn) targetBtn.classList.add('active');
+
+            if (tabName === 'dashboard') renderDashboardTable();
+            if (tabName === 'addStock' || tabName === 'loading' || tabName === 'unloading') populateDropdowns();
+            if (tabName === 'history') renderHistoryLogs();
+        }
+
+        function filterStockTable() {
+            renderDashboardTable();
+        }
+
+        function openResetModal() {
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        function confirmResetData() {
+            inventory = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+            historyLogs = [];
+            saveState();
+            renderAllViews();
+            closeResetModal();
+            showToast('System data reset to default items.', 'info');
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Item Name,Unit Rate (Rs.),Min Threshold,Total In,Loaded Out,Available Stock,Total Stock Value (Rs.),Status\r\n";
+
+            inventory.forEach(item => {
+                const avail = Math.max(0, item.stockIn - item.loadedOut);
+                const rate = item.rate || 0;
+                const thresh = item.minThreshold !== undefined ? item.minThreshold : 10;
+                const val = avail * rate;
+                const status = avail === 0 ? "Out of Stock" : (avail <= thresh ? "Low Stock" : "Normal");
+                const row = `"${item.name}",${rate},${thresh},${item.stockIn},${item.loadedOut},${avail},${val},"${status}"`;
+                csvContent += row + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `stock_inventory_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV file exported successfully!', 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            let bg = 'bg-slate-900 text-white';
+            let icon = 'fa-circle-check text-emerald-400';
+
+            if (type === 'error') {
+                bg = 'bg-rose-900 text-white';
+                icon = 'fa-triangle-exclamation text-rose-300';
+            } else if (type === 'info') {
+                bg = 'bg-blue-900 text-white';
+                icon = 'fa-circle-info text-blue-300';
+            }
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs sm:text-sm font-semibold transition-all transform translate-y-2 opacity-0 ${bg}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initInventoryState();
+        });
+    </script>
+</body>
+</html>
